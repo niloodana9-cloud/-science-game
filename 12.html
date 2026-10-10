@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>زنگ علوم – ماجرای دانشمند کوچک</title>
+<style>
+:root{
+  --ink:#1c2750; --paper:#f3faff; --line:rgba(46,110,200,.13);
+  --teal:#0fb5a6; --pink:#ff4f87; --sun:#ffc21a; --violet:#6d4cff;
+  --ok:#12a150; --bad:#e5484d;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; color:var(--ink); line-height:1.9; min-height:100vh;
+  font-family:"Vazirmatn","Vazir","IRANSans",Tahoma,"Segoe UI",sans-serif;
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:26px 26px;
+}
+.wrap{max-width:860px;margin:0 auto;padding:14px 14px 70px;position:relative}
+.wrap::before{content:"";position:absolute;top:0;bottom:0;right:4px;width:2px;background:rgba(255,79,135,.45);pointer-events:none}
+button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 6px 0}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:54px;height:54px;flex:none}
+.brand h1{margin:0;font-size:clamp(26px,6vw,42px);font-weight:900;line-height:1.2}
+.brand p{margin:0;font-size:13px;opacity:.8}
+.score{background:var(--sun);border:2.5px solid var(--ink);border-radius:999px;padding:2px 14px;font-weight:800;box-shadow:-3px 3px 0 var(--ink);white-space:nowrap}
+
+/* stage path */
+#path{display:flex;gap:6px;overflow-x:auto;padding:14px 4px 8px;margin-top:6px;scrollbar-width:thin}
+.node{flex:none;width:76px;background:none;border:0;padding:0;text-align:center}
+.node .dot{display:grid;place-items:center;width:46px;height:46px;margin:0 auto;border-radius:50%;border:2.5px solid var(--ink);background:#fff;font-weight:900;font-size:18px}
+.node .lbl{display:block;font-size:11.5px;line-height:1.4;margin-top:4px;font-weight:700}
+.node.cur .dot{background:var(--sun);box-shadow:0 0 0 4px rgba(255,194,26,.35)}
+.node.done .dot{background:var(--ok);color:#fff}
+.node.locked{cursor:not-allowed;opacity:.55}
+.node.locked .dot{background:#e3e8f3;font-size:16px}
+.node.fresh .dot{animation:bump .8s ease 2}
+@keyframes bump{50%{transform:scale(1.18)}}
+
+/* cards */
+.card{background:#fff;border:2.5px solid var(--ink);border-radius:18px;padding:18px;box-shadow:-5px 5px 0 var(--ink);margin:16px 0}
+.card h2{margin:0 0 6px;font-size:22px;font-weight:900;line-height:1.5}
+.card h3.q{margin:6px 0 12px;font-size:18px;line-height:1.9}
+.card p{margin:6px 0 10px}
+.muted{font-size:13px;opacity:.75}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+.btn{background:var(--sun);border:2.5px solid var(--ink);border-radius:12px;padding:8px 20px;font-weight:800;box-shadow:-3px 3px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.btn:active:not(:disabled){transform:translate(-2px,2px);box-shadow:-1px 1px 0 var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.alt{background:#fff}
+.btn.big{padding:10px 28px;font-size:18px}
+
+/* quiz */
+.prog{font-size:13px;font-weight:700;opacity:.7}
+.ctx{background:#fff7d6;border:2px dashed var(--ink);border-radius:12px;padding:8px 12px;margin:8px 0 4px}
+.tag{display:inline-block;background:var(--violet);color:#fff;border-radius:8px;padding:0 10px;font-size:13px;font-weight:800;margin-inline-start:6px}
+.opts{display:grid;gap:10px}
+.opt{display:block;width:100%;text-align:start;background:#fff;border:2px solid var(--ink);border-radius:12px;padding:10px 14px;line-height:1.8}
+.opt:hover:not(:disabled){background:#eef6ff}
+.opt.sel{background:#e6e0ff;border-color:var(--violet);box-shadow:inset 0 0 0 2px var(--violet)}
+.opt.right{background:#d9f7e5;border-color:var(--ok);animation:pop .35s ease}
+.opt.wrong{background:#ffe3e5;border-color:var(--bad);opacity:.75}
+.opts.done .opt{pointer-events:none}
+@keyframes pop{50%{transform:scale(1.025)}}
+.fb{margin-top:12px;font-weight:700;min-height:0}
+.fb.good{color:#0b6b36}.fb.bad{color:#b4232a}
+
+/* order game */
+.slots{list-style:none;margin:10px 0;padding:0;display:grid;gap:8px}
+.slot{display:flex;align-items:stretch;gap:8px}
+.slot .n{flex:none;width:36px;display:grid;place-items:center;background:var(--ink);color:#fff;border-radius:10px;font-weight:900}
+.slot .ph{flex:1;border:2px dashed var(--ink);border-radius:12px;padding:10px;opacity:.55;background:rgba(255,255,255,.6)}
+.ocard{flex:1;text-align:start;background:#fff;border:2px solid var(--ink);border-radius:12px;padding:8px 12px;line-height:1.7}
+.ocard b{display:block;font-size:16px}
+.ocard.lock{background:#d9f7e5;border-color:var(--ok);cursor:default}
+.pool{display:grid;gap:8px;margin-top:8px}
+.pool .ocard:hover{background:#eef6ff}
+
+/* bird */
+.birdbox{background:linear-gradient(#dff3ff,#fff);border:2px solid var(--ink);border-radius:14px;padding:6px}
+.birdbox svg{width:100%;height:150px;display:block}
+.range{width:100%;accent-color:var(--violet);margin:6px 0}
+.ends{display:flex;justify-content:space-between;font-weight:800;font-size:14px}
+.gauge{margin:8px 0}
+.gauge span.t{font-size:13px;font-weight:700}
+.gauge .bar{height:14px;background:#e3e8f3;border:2px solid var(--ink);border-radius:8px;overflow:hidden;margin-top:2px}
+.gauge .bar i{display:block;height:100%;background:var(--teal);transition:width .15s}
+.gauge.b .bar i{background:var(--pink)}
+
+/* lab */
+.chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0;padding:0}
+.chip{border:2px solid var(--ink);border-radius:999px;padding:0 12px;background:#fff;font-size:13px;font-weight:700}
+.chip.past{background:#cdf3ee}
+.chip.on{background:var(--sun)}
+.preview{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+.fig{text-align:center;font-weight:700;font-size:14px}
+.fig .it{width:100px;height:110px;margin:0 auto}
+.fig svg,.item svg{width:100%;height:100%;display:block}
+.lanes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lane{text-align:center}
+.lname{font-weight:800;font-size:14px;min-height:50px;line-height:1.5;display:grid;place-items:center}
+.track{position:relative;height:300px;border:2px solid var(--ink);border-radius:14px;overflow:hidden;background:linear-gradient(#e6f5ff,#fff)}
+.item{position:absolute;top:0;left:50%;margin-left:-50px;width:100px;height:110px;transform-origin:50% 0}
+.ground{position:absolute;bottom:0;left:0;right:0;height:10px;background:repeating-linear-gradient(90deg,#2d9b5a 0 12px,#37b36a 12px 24px);border-top:2px solid var(--ink)}
+.dots{display:flex;justify-content:center;gap:6px;margin:8px 0}
+.pip{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink);background:#fff}
+.pip.on{background:var(--ok)}
+.timer{text-align:center;font-weight:900;font-size:20px;margin:10px 0}
+table.tbl{width:100%;border-collapse:collapse;margin-top:6px}
+.tbl th,.tbl td{border:2px solid var(--ink);padding:5px 8px;text-align:center}
+.tbl th{background:#fff7d6}
+.axis{font-size:13px;font-weight:700;text-align:center;margin:4px 0}
+.chart{display:flex;justify-content:center;gap:34px;align-items:flex-end;height:190px;border-bottom:3px solid var(--ink);border-right:3px solid var(--ink);padding:0 24px;margin-top:6px}
+.chart .b{width:96px;border:2px solid var(--ink);border-bottom:0;border-radius:10px 10px 0 0;text-align:center;font-weight:900;padding-top:2px}
+.caps{display:flex;justify-content:center;gap:34px;padding:0 24px}
+.caps div{width:96px;text-align:center;font-size:13px;font-weight:700;line-height:1.5;padding-top:4px}
+.note{background:#e6f7ff;border:2px solid var(--ink);border-radius:12px;padding:8px 12px;margin:10px 0;font-weight:700}
+
+/* result / cert */
+.stars{font-size:40px;letter-spacing:4px;color:var(--sun);text-shadow:0 0 0 var(--ink);-webkit-text-stroke:1.5px var(--ink)}
+.center{text-align:center}
+.cert{border-style:dashed;text-align:center}
+.cert .medal{font-size:70px;line-height:1.2}
+.cert input{font-family:inherit;font-size:18px;text-align:center;border:2.5px solid var(--ink);border-radius:12px;padding:6px 12px;width:min(320px,100%)}
+.who{font-size:24px;font-weight:900;min-height:44px}
+
+@media (max-width:520px){
+  .card{padding:14px;box-shadow:-4px 4px 0 var(--ink)}
+  .lanes{gap:8px}
+  .chart,.caps{gap:18px}
+}
+@media (prefers-reduced-motion:reduce){
+  .node.fresh .dot,.opt.right{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M18 5h12v4h-2v10l10 18a4 4 0 0 1-3.5 6h-21A4 4 0 0 1 10 37l10-18V9h-2z" fill="#fff" stroke="#1c2750" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M14.5 31h19l4.3 7.3a3 3 0 0 1-2.6 4.7H12.8a3 3 0 0 1-2.6-4.7z" fill="#0fb5a6"/>
+        <circle cx="21" cy="36" r="2" fill="#fff"/><circle cx="28" cy="38" r="1.5" fill="#fff"/>
+        <circle cx="34" cy="8" r="2.5" fill="none" stroke="#1c2750" stroke-width="2"/><circle cx="39" cy="14" r="1.8" fill="none" stroke="#1c2750" stroke-width="2"/>
+      </svg>
+      <div>
+        <h1>زنگ علوم</h1>
+        <p>ماجرای دانشمند کوچک: علوم پایه‌ی پنجم، درس اول</p>
+      </div>
+    </div>
+    <div class="score" id="score" aria-live="polite">⭐ ۰</div>
+  </header>
+  <nav id="path" aria-label="مرحله‌های بازی"></nav>
+  <main id="stage"></main>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- helpers ---------- */
+const $ = (s, el) => (el || document).querySelector(s);
+const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+const num1 = n => fa((Math.round(n * 10) / 10).toFixed(1)).replace('.', '٫');
+const avg = a => a.reduce((s, x) => s + x, 0) / a.length;
+
+function h(tag, attrs, ...kids){
+  const el = document.createElement(tag);
+  if (attrs) for (const k of Object.keys(attrs)){
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'html') el.innerHTML = v;
+    else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()){
+    if (kid == null || kid === false) continue;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+function shuffle(a){
+  a = a.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function starsFor(wrong, a, b){ return wrong <= a ? 3 : (wrong <= b ? 2 : 1); }
+function starsText(n){ return '★'.repeat(n) + '☆'.repeat(3 - n); }
+
+/* ---------- state ---------- */
+const S = { unlocked: 1, stars: {}, done: {}, name: '', cur: 0, token: 0, cleanup: null, fresh: 0 };
+
+function totalStars(){ return Object.keys(S.stars).reduce((s, k) => s + S.stars[k], 0); }
+
+/* ---------- generic quiz ---------- */
+// qs: [{q, o:[[text, isCorrect],...], why, hint, ctx, tag, extra}]
+function runQuiz(host, qs, done, lastLabel){
+  let i = 0, wrong = 0;
+  function ask(){
+    const q = qs[i];
+    const opts = shuffle(q.o.map(x => ({ t: x[0], ok: !!x[1] })));
+    let solved = false;
+    const fb = h('div', { class: 'fb', role: 'status', 'aria-live': 'polite' });
+    const list = h('div', { class: 'opts' });
+    const nextRow = h('div', { class: 'row' });
+    const isLast = i === qs.length - 1;
+    opts.forEach(o => {
+      const b = h('button', { type: 'button', class: 'opt' }, o.t);
+      b.addEventListener('click', () => {
+        if (solved || b.disabled) return;
+        if (o.ok){
+          solved = true;
+          b.classList.add('right');
+          list.classList.add('done');
+          fb.className = 'fb good';
+          fb.textContent = '✅ ' + (q.why || 'درست است!');
+          const nb = h('button', { type: 'button', class: 'btn' }, isLast ? (lastLabel || 'ادامه') : 'پرسش بعدی');
+          nb.addEventListener('click', () => {
+            nb.disabled = true;
+            if (isLast) done(wrong); else { i++; ask(); }
+          });
+          nextRow.append(nb);
+          nb.focus();
+        } else {
+          wrong++;
+          b.disabled = true;
+          b.classList.add('wrong');
+          fb.className = 'fb bad';
+          fb.textContent = '❌ ' + (q.hint || 'درست نیست؛ دوباره فکر کن.');
+        }
+      });
+      list.append(b);
+    });
+    host.replaceChildren(h('div', { class: 'card' },
+      h('div', { class: 'prog' }, 'پرسش ' + fa(i + 1) + ' از ' + fa(qs.length), q.tag ? h('span', { class: 'tag' }, q.tag) : null),
+      q.ctx ? h('div', { class: 'ctx' }, q.ctx) : null,
+      q.extra || null,
+      h('h3', { class: 'q' }, q.q),
+      list, fb, nextRow));
+  }
+  ask();
+}
+
+/* ---------- SVG builders ---------- */
+function birdSVG(v){
+  const w = 24 + v * 12;
+  const wing = s => '<path d="M' + (s * 8) + ' -14 L' + (s * (8 + w)) + ' ' + (-6 - v) + ' L' + (s * (8 + w - 12)) + ' 8 L' + (s * 8) + ' 13 Z" fill="#0fb5a6" stroke="#1c2750" stroke-width="3" stroke-linejoin="round"/>';
+  return '<svg viewBox="-160 -62 320 124" role="img" aria-label="پرنده با بال‌هایی به پهنای ' + fa(v) + '">' +
+    wing(1) + wing(-1) +
+    '<path d="M-8 26 L8 26 L13 48 L-13 48 Z" fill="#6d4cff" stroke="#1c2750" stroke-width="3" stroke-linejoin="round"/>' +
+    '<ellipse cx="0" cy="0" rx="11" ry="28" fill="#1c2750"/>' +
+    '<circle cx="0" cy="-33" r="8.5" fill="#1c2750"/>' +
+    '<path d="M-3.5 -40 L3.5 -40 L0 -50 Z" fill="#ffc21a" stroke="#1c2750" stroke-width="2" stroke-linejoin="round"/>' +
+    '</svg>';
+}
+function itemSVG(kind, p, key){
+  const col = key === 'A' ? '#0fb5a6' : '#ff4f87';
+  if (kind === 'pinwheel'){
+    let clips = '';
+    for (let i = 0; i < p.clips; i++){
+      clips += '<rect x="39" y="' + (82 - i * 12) + '" width="12" height="17" rx="6" fill="none" stroke="#5b6478" stroke-width="2.4"/>';
+    }
+    return '<svg viewBox="0 0 90 110" aria-hidden="true">' +
+      '<rect x="43" y="30" width="4" height="72" rx="2" fill="#1c2750"/>' + clips +
+      '<g class="wings">' +
+      '<rect x="' + (45 - p.w) + '" y="20" width="' + p.w + '" height="14" rx="3" fill="' + col + '" stroke="#1c2750" stroke-width="2"/>' +
+      '<rect x="45" y="20" width="' + p.w + '" height="14" rx="3" fill="' + col + '" stroke="#1c2750" stroke-width="2"/>' +
+      '</g></svg>';
+  }
+  const r = p.r, ry = r * 0.85;
+  let strings = '';
+  [-1, -0.5, 0.5, 1].forEach(f => {
+    strings += '<line x1="' + (60 + f * r) + '" y1="50" x2="60" y2="108" stroke="#1c2750" stroke-width="1.6"/>';
+  });
+  return '<svg viewBox="0 0 120 125" aria-hidden="true">' + strings +
+    '<path d="M' + (60 - r) + ' 50 A' + r + ' ' + ry + ' 0 0 1 ' + (60 + r) + ' 50 Z" fill="' + col + '" stroke="#1c2750" stroke-width="2.4" stroke-linejoin="round"/>' +
+    '<circle cx="60" cy="113" r="9" fill="#6d4cff" stroke="#1c2750" stroke-width="2"/></svg>';
+}
+
+/* ---------- stage 0: intro ---------- */
+function intro(host){
+  host.append(h('div', { class: 'card' },
+    h('h2', null, 'به آزمایشگاه خوش آمدی، دانشمند کوچک!'),
+    h('p', null, 'در این بازی با فرفره، چتر نجات و پرنده‌ها کاوش علمی می‌کنی. هفت مرحله پیش رو داری و هر مرحله وقتی تمام شود، مرحله‌ی بعد باز می‌شود.'),
+    h('p', { class: 'muted' }, 'اگر جواب اشتباه بدهی، می‌توانی دوباره امتحان کنی. هرچه کمتر اشتباه کنی، ستاره‌ی بیشتری می‌گیری.'),
+    h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn big', onclick: () => show(1) }, 'شروع ماجراجویی'))
+  ));
+}
+
+/* ---------- stage 1: order of inquiry steps ---------- */
+function stageOrder(host, ctx){
+  const steps = [
+    { k: 'مشاهده', e: '👀', x: 'دیدم فرفره‌ها هنگام افتادن می‌چرخند، ولی بعضی‌ها دیرتر به زمین می‌رسند.' },
+    { k: 'سؤال', e: '❓', x: 'آیا پهنای بال فرفره روی مدت زمان فرود آن اثر دارد؟' },
+    { k: 'پیش‌بینی', e: '💭', x: 'فکر می‌کنم هرچه بال فرفره پهن‌تر باشد، دیرتر به زمین می‌رسد.' },
+    { k: 'آزمایش', e: '🧪', x: 'دو فرفره با بال متفاوت را سه بار از یک ارتفاع رها می‌کنم و زمان فرود را می‌نویسم.' },
+    { k: 'نتیجه‌گیری', e: '💡', x: 'فرفره‌ی بال پهن‌تر دیرتر فرود آمد؛ پس پیش‌بینی من درست بود.' }
+  ];
+  let order = shuffle([0, 1, 2, 3, 4]);
+  while (order.every((v, i) => v === i)) order = shuffle(order);
+  const slots = [null, null, null, null, null];
+  const locked = [false, false, false, false, false];
+  let attempts = 1, wrongs = 0, complete = false;
+  const area = h('div');
+  const msg = h('div', { class: 'fb', role: 'status', 'aria-live': 'polite' });
+  const actions = h('div', { class: 'row' });
+  host.append(h('div', { class: 'card' },
+    h('h2', null, 'مرحله‌ی ۱: مراحل کاوش علمی'),
+    h('p', null, 'دانشمندها برای پاسخ دادن به یک پرسش، کارشان را به ترتیب انجام می‌دهند. کارت‌ها را از اولین گام تا آخرین گام به ترتیب بزن. اگر جایی اشتباه شد، روی کارت بزن تا برگردد.'),
+    area, msg, actions));
+
+  function card(id, inSlot, i){
+    const st = steps[id];
+    const isLocked = inSlot && locked[i];
+    const b = h('button', { type: 'button', class: 'ocard' + (isLocked ? ' lock' : '') },
+      h('b', null, st.e + ' ' + st.k), st.x);
+    if (isLocked) b.disabled = false;
+    b.addEventListener('click', () => {
+      if (complete) return;
+      if (inSlot){
+        if (locked[i]) return;
+        slots[i] = null;
+      } else {
+        const idx = slots.indexOf(null);
+        if (idx < 0) return;
+        slots[idx] = id;
+      }
+      msg.textContent = '';
+      draw();
+    });
+    return b;
+  }
+  function draw(){
+    const ol = h('ol', { class: 'slots' });
+    slots.forEach((id, i) => {
+      ol.append(h('li', { class: 'slot' },
+        h('span', { class: 'n' }, fa(i + 1)),
+        id == null ? h('div', { class: 'ph' }, 'گام ' + fa(i + 1) + ' را اینجا بگذار') : card(id, true, i)));
+    });
+    const pool = h('div', { class: 'pool' });
+    order.filter(id => slots.indexOf(id) < 0).forEach(id => pool.append(card(id, false, -1)));
+    area.replaceChildren(ol, pool);
+
+    actions.replaceChildren();
+    if (complete) return;
+    const full = slots.indexOf(null) < 0;
+    const chk = h('button', { type: 'button', class: 'btn', onclick: check }, 'بررسی ترتیب');
+    chk.disabled = !full;
+    actions.append(chk);
+  }
+  function check(){
+    let all = true, correct = 0;
+    slots.forEach((id, i) => {
+      if (id === i){ locked[i] = true; correct++; }
+      else { slots[i] = null; all = false; wrongs++; }
+    });
+    if (all){
+      complete = true;
+      draw();
+      msg.className = 'fb good';
+      msg.textContent = '✅ آفرین! کاوش علمی با مشاهده شروع می‌شود و با نتیجه‌گیری تمام می‌شود.';
+      const go = h('button', { type: 'button', class: 'btn', onclick: () => ctx.finish(starsFor(attempts - 1, 0, 1)) }, 'ادامه');
+      actions.append(go);
+      go.focus();
+    } else {
+      attempts++;
+      msg.className = 'fb bad';
+      msg.textContent = '❌ ' + fa(correct) + ' گام درست بود و سر جایش ماند. بقیه‌ی کارت‌ها برگشتند؛ دوباره بچین.';
+      draw();
+    }
+  }
+  draw();
+}
+
+/* ---------- stage 2: comparative experiments ---------- */
+function stageCompare(host, ctx){
+  const sc = [
+    { n: 'سارا', f: 'با افزایش تعداد دفعات آب دادن به گیاه، گیاه زودتر رشد می‌کند.', e: '🌱',
+      c: ['تعداد دفعات آب دادن به گیاه', 'رشد گیاه (مثلاً قد گیاه)', 'نوع گیاه، مقدار نور و مقدار آبِ هر بار',
+          ['رشد گیاه', 'نوع گیاه و رنگ گلدان', 'مقدار نور و قد گیاه'],
+          ['نوع گیاه', 'مقدار نور', 'تعداد دفعات آب دادن'],
+          ['تعداد دفعات آب دادن', 'رشد گیاه', 'قد گیاه و تعداد دفعات آب دادن']] },
+    { n: 'مریم', f: 'با اضافه کردن بار ماشین‌ها، سرعت آن‌ها کمتر می‌شود.', e: '🚚',
+      c: ['مقدار بار ماشین', 'سرعت ماشین (یا زمان رسیدن به خط پایان)', 'نوع ماشین و مسیر حرکت',
+          ['نوع ماشین', 'رنگ ماشین', 'مسیر حرکت'],
+          ['مقدار بار ماشین', 'مسیر حرکت', 'نوع ماشین'],
+          ['مقدار بار و سرعت ماشین', 'سرعت ماشین', 'فقط مقدار بار ماشین']] },
+    { n: 'زهرا', f: 'چای در لیوان فلزی زودتر از لیوان شیشه‌ای خنک می‌شود.', e: '🍵',
+      c: ['جنس لیوان (فلزی یا شیشه‌ای)', 'مدت زمان خنک شدن چای (یا دمای چای)', 'مقدار چای و دمای اولیه‌ی چای',
+          ['مقدار چای', 'دمای اولیه‌ی چای', 'اندازه‌ی لیوان'],
+          ['جنس لیوان', 'مقدار چای', 'رنگ لیوان'],
+          ['جنس لیوان', 'مدت زمان خنک شدن چای', 'جنس لیوان و زمان خنک شدن']] }
+  ];
+  const qs = [];
+  sc.forEach(s => {
+    const ctxEl = h('span', null, s.e + ' فرضیه‌ی ' + s.n + ': «' + s.f + '»');
+    qs.push({ ctx: ctxEl.cloneNode(true), tag: 'تغییر می‌دهد', q: 'به نظر تو ' + s.n + ' چه چیزی را باید تغییر دهد؟',
+      o: [], why: 'درست است. چیزی که تغییر می‌دهیم همان متغیر مستقل است: ' + s.c[0] + '.' });
+    qs.push({ ctx: ctxEl.cloneNode(true), tag: 'اندازه می‌گیرد', q: 'به نظر تو ' + s.n + ' چه چیزی را باید اندازه بگیرد؟',
+      o: [[s.c[1], 1], [s.c[4][0], 0], [s.c[4][1], 0], [s.c[4][2], 0]],
+      why: 'درست است. چیزی که اندازه می‌گیریم همان متغیر وابسته است: ' + s.c[1] + '.' });
+    qs.push({ ctx: ctxEl.cloneNode(true), tag: 'ثابت نگه می‌دارد', q: 'به نظر تو ' + s.n + ' چه چیزی را باید ثابت نگه دارد؟',
+      o: [[s.c[2], 1], [s.c[5][0], 0], [s.c[5][1], 0], [s.c[5][2], 0]],
+      why: 'درست است. بقیه‌ی شرایط باید یکسان بمانند تا آزمایش عادلانه باشد: ' + s.c[2] + '.' });
+  });
+  // clean up the distractors for the "change" question so they are clearly different from the right answer
+  sc.forEach((s, i) => {
+    qs[i * 3].o = [[s.c[0], 1], [s.c[1], 0], [s.c[2], 0], [['مقدار غذای گیاه', 'رنگ بار ماشین', 'رنگ لیوان'][i], 0]];
+  });
+  const quizHost = h('div');
+  const start = h('div', { class: 'card' },
+    h('h2', null, 'مرحله‌ی ۲: آزمایش مقایسه‌ای'),
+    h('p', null, 'در آزمایش مقایسه‌ای برای بررسی درستی یک پیش‌بینی (فرضیه):'),
+    h('p', null, '🔁 فقط یک چیز را تغییر می‌دهیم (متغیر مستقل)،'),
+    h('p', null, '📏 یک چیز را اندازه می‌گیریم (متغیر وابسته)،'),
+    h('p', null, '🔒 و بقیه‌ی چیزها را ثابت نگه می‌داریم.'),
+    h('p', null, 'حالا برای فرضیه‌ی سارا، مریم و زهرا این سه مورد را پیدا کن.'),
+    h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn', onclick: () => {
+      host.replaceChildren(quizHost);
+      runQuiz(quizHost, qs, w => ctx.finish(starsFor(w, 2, 6)), 'پایان مرحله');
+    } }, 'شروع')));
+  host.append(start);
+}
+
+/* ---------- stage 3: eagle vs pigeon ---------- */
+function stageBird(host, ctx){
+  const box = h('div', { class: 'birdbox' });
+  const slider = h('input', { type: 'range', min: '1', max: '10', value: '5', class: 'range', 'aria-label': 'پهنای بال پرنده' });
+  const g1 = h('i'), g2 = h('i');
+  const label = h('div', { class: 'note', 'aria-live': 'polite' });
+  const go = h('button', { type: 'button', class: 'btn', disabled: true }, 'برویم سراغ پرسش‌ها');
+  const hint = h('div', { class: 'muted' });
+  let seenSmall = false, seenBig = false;
+  function upd(){
+    const v = +slider.value;
+    box.innerHTML = birdSVG(v);
+    g1.style.width = (v * 10) + '%';
+    g2.style.width = (v * 10) + '%';
+    if (v <= 3) seenSmall = true;
+    if (v >= 8) seenBig = true;
+    label.textContent = v <= 3 ? '🕊️ بال کوچک، شبیه کبوتر' : (v >= 8 ? '🦅 بال بزرگ و پهن، شبیه عقاب' : 'بال متوسط');
+    go.disabled = !(seenSmall && seenBig);
+    hint.textContent = go.disabled
+      ? 'اسلایدر را یک بار تا بال کوچک و یک بار تا بال بزرگ ببر تا دکمه‌ی پرسش‌ها باز شود.'
+      : 'عالی! هر دو حالت را دیدی.';
+  }
+  slider.addEventListener('input', upd);
+  slider.addEventListener('change', upd);
+  const quizHost = h('div');
+  go.addEventListener('click', () => {
+    host.replaceChildren(quizHost);
+    runQuiz(quizHost, [
+      { tag: 'مشاهده و سؤال', q: 'عقاب بدون زدن مداوم بال‌هایش هم می‌تواند مدتی در آسمان بماند. به نظر تو دلیل اصلی چیست؟',
+        o: [['بال‌های بزرگ و پهن‌تری دارد که با هوای بیشتری برخورد می‌کند.', 1],
+            ['بال‌هایش از بال کبوتر کوچک‌تر است.', 0],
+            ['هوا فقط عقاب را بالا می‌برد و کبوتر را نه.', 0],
+            ['رنگ پرهایش تیره‌تر است.', 0]],
+        why: 'عقاب بال‌های پهن دارد و هوای بیشتری زیر بال‌هایش جمع می‌شود؛ برای همین راحت‌تر روی هوا می‌ماند.' },
+      { tag: 'پیش‌بینی', q: 'کدام جمله پیش‌بینی (فرضیه‌ی) مناسب‌تری برای این سؤال است؟',
+        o: [['هرچه بال پهن‌تر باشد، پرنده راحت‌تر روی هوا می‌ماند.', 1],
+            ['عقاب پرنده‌ی زیبایی است.', 0],
+            ['هرچه پرنده رنگارنگ‌تر باشد، بهتر پرواز می‌کند.', 0],
+            ['کبوتر دانه می‌خورد.', 0]],
+        why: 'یک پیش‌بینی خوب، رابطه‌ی دو چیز را می‌گوید و می‌شود آن را آزمایش کرد.' },
+      { tag: 'طراحی آزمایش', q: 'برای آزمودن این پیش‌بینی با فرفره‌ی کاغذی، چه چیزی را باید تغییر دهیم؟',
+        o: [['پهنای بال فرفره', 1],
+            ['زمان فرود فرفره', 0],
+            ['ارتفاعی که فرفره از آن رها می‌شود', 0],
+            ['جرم فرفره', 0]],
+        why: 'همین کار را در مرحله‌ی بعد با دو فرفره انجام می‌دهی.' }
+    ], w => ctx.finish(starsFor(w, 1, 3)), 'پایان مرحله');
+  });
+  host.append(h('div', { class: 'card' },
+    h('h2', null, 'مرحله‌ی ۳: عقاب و کبوتر'),
+    h('p', null, 'چرا عقاب راحت‌تر از کبوتر در آسمان پرواز می‌کند؟ اسلایدر را حرکت بده و ببین پهنای بال چه تغییری ایجاد می‌کند.'),
+    box,
+    h('div', { class: 'ends' }, h('span', null, '🦅 عقاب (بال پهن)'), h('span', null, '🕊️ کبوتر (بال کوچک)')),
+    slider, label,
+    h('div', { class: 'gauge' }, h('span', { class: 't' }, 'برخورد بال با هوا'), h('div', { class: 'bar' }, g1)),
+    h('div', { class: 'gauge b' }, h('span', { class: 't' }, 'مدت ماندن روی هوا'), h('div', { class: 'bar' }, g2)),
+    hint,
+    h('div', { class: 'row' }, go)));
+  upd();
+}
+
+/* ---------- stages 4-6: drop labs ---------- */
+const LABS = {
+  wing: {
+    kind: 'pinwheel', title: 'مرحله‌ی ۴: پهنای بال فرفره', noise: 0.25,
+    observe: 'دو فرفره‌ی کاغذی ساخته‌ای. هر دو هنگام افتادن می‌چرخند، ولی پهنای بال‌هایشان فرق دارد.',
+    question: 'آیا پهنای بال فرفره روی مدت زمان فرود آن اثر دارد؟',
+    A: { label: 'فرفره با بال باریک', short: 'بال باریک', props: { w: 16, clips: 0 }, t: 1.7 },
+    B: { label: 'فرفره با بال پهن', short: 'بال پهن', props: { w: 36, clips: 0 }, t: 2.8 },
+    predictions: [
+      { k: 'A', t: 'فرفره‌ی بال باریک دیرتر به زمین می‌رسد.' },
+      { k: 'B', t: 'فرفره‌ی بال پهن دیرتر به زمین می‌رسد.' },
+      { k: 'same', t: 'هر دو هم‌زمان به زمین می‌رسند.' }],
+    design: [
+      { tag: 'تغییر', q: 'برای آزمودن پیش‌بینی چه چیزی را باید تغییر دهیم؟',
+        o: [['پهنای بال فرفره', 1], ['ارتفاعی که فرفره از آن رها می‌شود', 0], ['جرم فرفره', 0], ['مدت زمان فرود', 0]],
+        why: 'متغیر مستقل: پهنای بال.' },
+      { tag: 'اندازه‌گیری', q: 'چه چیزی را باید اندازه بگیریم؟',
+        o: [['مدت زمانی که فرفره طول می‌کشد تا به زمین برسد', 1], ['پهنای بال فرفره', 0], ['تعداد فرفره‌ها', 0], ['ارتفاع رها کردن', 0]],
+        why: 'متغیر وابسته: زمان فرود (به ثانیه).' },
+      { tag: 'ثابت', q: 'کدام موارد را باید ثابت نگه داریم؟',
+        o: [['ارتفاع رها کردن و جرم فرفره‌ها', 1], ['پهنای بال‌ها و ارتفاع رها کردن', 0], ['پهنای بال‌ها و زمان فرود', 0], ['زمان فرود و جرم فرفره‌ها', 0]],
+        why: 'ارتفاع و جرم باید برای هر دو فرفره یکسان باشد.' }],
+    axisX: 'نوع فرفره (پهنای بال)',
+    conclude: [
+      { tag: 'نتیجه‌گیری', q: 'با توجه به جدول، چه نتیجه‌ای می‌گیریم؟',
+        o: [['هرچه پهنای بال فرفره بیشتر باشد، دیرتر به زمین می‌رسد.', 1], ['هرچه پهنای بال فرفره بیشتر باشد، زودتر به زمین می‌رسد.', 0], ['پهنای بال هیچ اثری روی زمان فرود ندارد.', 0]],
+        why: 'همین نتیجه را مرحله‌ی قبل درباره‌ی عقاب هم حدس زدی.' },
+      { tag: 'تکرار', q: 'چرا آزمایش را سه بار تکرار کردیم؟',
+        o: [['تا از درست بودن نتیجه مطمئن‌تر شویم و خطای اندازه‌گیری کم شود.', 1], ['تا جدول بزرگ‌تر شود.', 0], ['تا فرفره‌ها را عوض کنیم.', 0]],
+        why: 'تکرار آزمایش اعتماد به نتیجه را بیشتر می‌کند.' },
+      { tag: 'دلیل', q: 'چرا فرفره‌ی بال پهن دیرتر فرود آمد؟',
+        o: [['چون بال پهن‌تر بیشتر با هوا برخورد می‌کند و هوا مانع سقوط می‌شود.', 1], ['چون بال پهن‌تر سنگین‌تر است.', 0], ['چون هوا فقط بال‌های باریک را پایین می‌کشد.', 0]],
+        why: 'دقیقاً مثل بال‌های پهن عقاب.' }]
+  },
+  mass: {
+    kind: 'pinwheel', title: 'مرحله‌ی ۵: جرم فرفره', noise: 0.2,
+    observe: 'دو فرفره‌ی هم‌اندازه داری. به یکی از آن‌ها دو گیره‌ی کاغذ وصل کرده‌ای تا جرمش بیشتر شود.',
+    question: 'آیا جرم فرفره روی مدت زمان فرود آن اثر دارد؟',
+    A: { label: 'فرفره‌ی بدون گیره (سبک)', short: 'بدون گیره', props: { w: 26, clips: 0 }, t: 2.7 },
+    B: { label: 'فرفره با دو گیره (سنگین)', short: 'دو گیره', props: { w: 26, clips: 2 }, t: 1.7 },
+    predictions: [
+      { k: 'A', t: 'فرفره‌ی سبک دیرتر به زمین می‌رسد.' },
+      { k: 'B', t: 'فرفره‌ی سنگین دیرتر به زمین می‌رسد.' },
+      { k: 'same', t: 'هر دو هم‌زمان به زمین می‌رسند.' }],
+    design: [
+      { tag: 'تغییر', q: 'چه چیزی را باید تغییر دهیم؟',
+        o: [['جرم فرفره (تعداد گیره‌ها)', 1], ['پهنای بال فرفره', 0], ['ارتفاع رها کردن', 0], ['زمان فرود', 0]],
+        why: 'متغیر مستقل: جرم فرفره.' },
+      { tag: 'اندازه‌گیری', q: 'چه چیزی را باید اندازه بگیریم؟',
+        o: [['مدت زمان فرود فرفره', 1], ['تعداد گیره‌ها', 0], ['پهنای بال', 0], ['اندازه‌ی کاغذ', 0]],
+        why: 'متغیر وابسته: زمان فرود.' },
+      { tag: 'ثابت', q: 'کدام موارد را باید ثابت نگه داریم؟',
+        o: [['پهنای بال و ارتفاع رها کردن', 1], ['تعداد گیره‌ها و پهنای بال', 0], ['تعداد گیره‌ها و زمان فرود', 0], ['فقط زمان فرود', 0]],
+        why: 'فقط جرم باید فرق کند.' }],
+    axisX: 'نوع فرفره (جرم)',
+    conclude: [
+      { tag: 'نتیجه‌گیری', q: 'با توجه به جدول، چه نتیجه‌ای می‌گیریم؟',
+        o: [['هرچه جرم فرفره بیشتر باشد، زودتر به زمین می‌رسد.', 1], ['هرچه جرم فرفره بیشتر باشد، دیرتر به زمین می‌رسد.', 0], ['جرم فرفره هیچ اثری روی زمان فرود ندارد.', 0]],
+        why: 'فرفره‌ی سنگین‌تر زودتر فرود آمد.' },
+      { tag: 'دلیل', q: 'چرا فرفره‌ی سنگین‌تر زودتر فرود آمد؟',
+        o: [['چون هوا نمی‌تواند فرود فرفره‌ی سنگین‌تر را به‌اندازه‌ی فرفره‌ی سبک کند کند.', 1], ['چون بال‌هایش پهن‌تر شده است.', 0], ['چون از ارتفاع بیشتری رها شده است.', 0]],
+        why: 'فرفره‌ی سنگین‌تر را هوا کمتر می‌تواند کند کند.' },
+      { tag: 'طراحی', q: 'چرا در این آزمایش باید پهنای بال دو فرفره یکسان باشد؟',
+        o: [['تا فقط اثر جرم سنجیده شود و عامل دیگری نتیجه را عوض نکند.', 1], ['چون فرفره‌ی هم‌شکل قشنگ‌تر است.', 0], ['چون جرم به پهنای بال بستگی ندارد و مهم نیست.', 0]],
+        why: 'متغیرهای دیگر باید ثابت بمانند.' }]
+  },
+  para: {
+    kind: 'parachute', title: 'مرحله‌ی ۶: سطح چتر نجات', noise: 0.25,
+    observe: 'دو چتر نجات ساخته‌ای. سطح یکی کوچک و سطح دیگری بزرگ است و جرم خمیربازی زیر هر دو برابر است.',
+    question: 'آیا اندازه‌ی سطح چتر نجات روی زمان فرود آن اثر دارد؟',
+    A: { label: 'چتر نجات با سطح کوچک', short: 'سطح کوچک', props: { r: 20 }, t: 1.3 },
+    B: { label: 'چتر نجات با سطح بزرگ', short: 'سطح بزرگ', props: { r: 46 }, t: 2.9 },
+    predictions: [
+      { k: 'A', t: 'چتر با سطح کوچک دیرتر به زمین می‌رسد.' },
+      { k: 'B', t: 'چتر با سطح بزرگ دیرتر به زمین می‌رسد.' },
+      { k: 'same', t: 'هر دو هم‌زمان به زمین می‌رسند.' }],
+    design: [
+      { tag: 'تغییر', q: 'چه چیزی را باید تغییر دهیم؟',
+        o: [['اندازه‌ی سطح چتر', 1], ['جرم خمیربازی', 0], ['ارتفاع رها کردن', 0], ['زمان فرود', 0]],
+        why: 'متغیر مستقل: سطح چتر.' },
+      { tag: 'اندازه‌گیری', q: 'چه چیزی را باید اندازه بگیریم؟',
+        o: [['مدت زمان رسیدن چتر به زمین', 1], ['اندازه‌ی سطح چتر', 0], ['طول نخ‌ها', 0], ['جرم خمیربازی', 0]],
+        why: 'متغیر وابسته: زمان فرود.' },
+      { tag: 'ثابت', q: 'کدام موارد را باید ثابت نگه داریم؟',
+        o: [['جرم خمیربازی و ارتفاع رها کردن (۲ تا ۳ متر)', 1], ['اندازه‌ی چتر و جرم خمیربازی', 0], ['اندازه‌ی چتر و ارتفاع رها کردن', 0], ['زمان فرود و ارتفاع رها کردن', 0]],
+        why: 'فقط اندازه‌ی چتر باید فرق کند.' }],
+    axisX: 'نوع چتر نجات (سطح)',
+    conclude: [
+      { tag: 'نتیجه‌گیری', q: 'با توجه به جدول، چه نتیجه‌ای می‌گیریم؟',
+        o: [['هرچه سطح چتر نجات بزرگ‌تر باشد، دیرتر فرود می‌آید.', 1], ['هرچه سطح چتر نجات بزرگ‌تر باشد، زودتر فرود می‌آید.', 0], ['اندازه‌ی چتر هیچ اثری روی زمان فرود ندارد.', 0]],
+        why: 'چتر بزرگ‌تر با هوای بیشتری برخورد می‌کند.' },
+      { tag: 'کاربرد', q: 'اگر دو چترباز هم‌وزن باشند، کدام‌یک زمان بیشتری در آسمان می‌ماند؟',
+        o: [['چترباز با چتر بزرگ‌تر', 1], ['چترباز با چتر کوچک‌تر', 0], ['هر دو دقیقاً یک‌قدر', 0]],
+        why: 'سطح بزرگ‌تر یعنی هوای بیشتری جلوی سقوط را می‌گیرد.' },
+      { tag: 'طراحی', q: 'چرا ارتفاع رها کردن دو چتر باید یکسان باشد؟',
+        o: [['تا فقط اثر اندازه‌ی چتر سنجیده شود.', 1], ['تا چترها زودتر به زمین برسند.', 0], ['چون ارتفاع روی نتیجه هیچ اثری ندارد، پس مهم نیست.', 0]],
+        why: 'عامل‌های دیگر باید ثابت باشند.' }]
+  }
+};
+
+function simStage(cfg){
+  return function(host, ctx){
+    let alive = true, raf = 0, wrongs = 0, prediction = null;
+    const results = { A: [], B: [] };
+    ctx.setCleanup(() => { alive = false; cancelAnimationFrame(raf); });
+    const chips = h('ol', { class: 'chips', 'aria-label': 'مراحل کاوش' });
+    const body = h('div');
+    host.append(h('div', { class: 'card', style: 'padding-bottom:10px' }, h('h2', null, cfg.title), chips), body);
+    const names = [['👀', 'مشاهده'], ['❓', 'سؤال'], ['💭', 'پیش‌بینی'], ['🧪', 'آزمایش'], ['💡', 'نتیجه‌گیری']];
+    function drawChips(p){
+      chips.replaceChildren(...names.map((n, i) =>
+        h('li', { class: 'chip' + (i === p ? ' on' : '') + (i < p ? ' past' : ''), 'aria-current': i === p ? 'step' : null }, n[0] + ' ' + n[1])));
+    }
+    function setPhase(p){
+      drawChips(p);
+      [phaseObserve, phaseQuestion, phasePredict, phaseExperiment, phaseConclude][p]();
+    }
+    function fig(key){
+      return h('div', { class: 'fig' }, h('div', { class: 'it', html: itemSVG(cfg.kind, cfg[key].props, key) }), cfg[key].label);
+    }
+    function nextBtn(text, fn){ return h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn', onclick: fn }, text)); }
+
+    function phaseObserve(){
+      body.replaceChildren(h('div', { class: 'card' },
+        h('h2', null, '👀 مشاهده'), h('p', null, cfg.observe),
+        h('div', { class: 'preview' }, fig('A'), fig('B')),
+        nextBtn('سؤالی به ذهنم رسید', () => setPhase(1))));
+    }
+    function phaseQuestion(){
+      body.replaceChildren(h('div', { class: 'card' },
+        h('h2', null, '❓ سؤال'), h('div', { class: 'note' }, cfg.question),
+        nextBtn('پیش‌بینی می‌کنم', () => setPhase(2))));
+    }
+    function phasePredict(){
+      let chosen = null;
+      const confirm = h('button', { type: 'button', class: 'btn', disabled: true }, 'پیش‌بینی من همین است');
+      const list = h('div', { class: 'opts' });
+      cfg.predictions.forEach(pr => {
+        const b = h('button', { type: 'button', class: 'opt', 'aria-pressed': 'false' }, pr.t);
+        b.addEventListener('click', () => {
+          chosen = pr;
+          Array.prototype.forEach.call(list.children, c => { c.classList.remove('sel'); c.setAttribute('aria-pressed', 'false'); });
+          b.classList.add('sel'); b.setAttribute('aria-pressed', 'true');
+          confirm.disabled = false;
+        });
+        list.append(b);
+      });
+      confirm.addEventListener('click', () => { if (!chosen) return; prediction = chosen; setPhase(3); });
+      body.replaceChildren(h('div', { class: 'card' },
+        h('h2', null, '💭 پیش‌بینی'),
+        h('p', null, 'به نظرت جواب سؤال چیست؟ یک پیش‌بینی انتخاب کن. اشتباه یا درست بودنش را آزمایش مشخص می‌کند.'),
+        list, h('div', { class: 'row' }, confirm)));
+    }
+    function phaseExperiment(){
+      const quizHost = h('div');
+      body.replaceChildren(h('div', { class: 'card' }, h('h2', null, '🧪 آزمایش'),
+        h('p', null, 'اول آزمایش را طراحی کن: متغیرها را مشخص کن. بعد خودت دو مورد را سه‌بار رها می‌کنی.')), quizHost);
+      runQuiz(quizHost, cfg.design, w => { if (!alive) return; wrongs += w; lab(); }, 'برویم سراغ آزمایش');
+    }
+    function lab(){
+      const lanes = {}, cells = { A: [], B: [] };
+      let busy = false, shown = false;
+      const timer = h('div', { class: 'timer', 'aria-live': 'off' }, '⏱ ' + num1(0) + ' ثانیه');
+      const row = h('div', { class: 'row' });
+      function lane(key){
+        const item = h('div', { class: 'item', html: itemSVG(cfg.kind, cfg[key].props, key) });
+        const track = h('div', { class: 'track' }, item, h('div', { class: 'ground' }));
+        const pips = [0, 1, 2].map(() => h('span', { class: 'pip' }));
+        const btn = h('button', { type: 'button', class: 'btn' }, 'رها کن');
+        btn.addEventListener('click', () => drop(key));
+        lanes[key] = { item, btn, pips };
+        return h('div', { class: 'lane' }, h('div', { class: 'lname' }, cfg[key].label), track, h('div', { class: 'dots' }, pips), btn);
+      }
+      const tbody = h('tbody');
+      for (let k = 0; k < 3; k++){
+        const ca = h('td', null, '—'), cb = h('td', null, '—');
+        cells.A.push(ca); cells.B.push(cb);
+        tbody.append(h('tr', null, h('td', null, '(' + fa(k + 1) + ')'), ca, cb));
+      }
+      const table = h('table', { class: 'tbl' },
+        h('thead', null, h('tr', null, h('th', null, 'شماره‌ی آزمایش'), h('th', null, cfg.A.short), h('th', null, cfg.B.short))), tbody);
+      body.replaceChildren(h('div', { class: 'card' },
+        h('p', null, 'هر کدام را از یک ارتفاع مشخص سه بار رها کن و زمان فرود را در جدول ببین. هر بار فقط یکی را می‌توانی رها کنی.'),
+        h('div', { class: 'lanes' }, lane('A'), lane('B')), timer,
+        h('p', { class: 'muted center' }, 'زمان فرود به ثانیه است'), table, row));
+      setBtns();
+
+      function setBtns(){
+        ['A', 'B'].forEach(k => {
+          const done = results[k].length >= 3;
+          lanes[k].btn.disabled = busy || done;
+          lanes[k].btn.textContent = done ? 'سه بار انجام شد ✓' : 'رها کن';
+        });
+      }
+      function drop(key){
+        if (busy || results[key].length >= 3) return;
+        busy = true; setBtns();
+        const L = lanes[key];
+        const T = Math.round((cfg[key].t + (Math.random() * 2 - 1) * cfg.noise) * 10) / 10;
+        const maxTop = 300 - 110 - 10;
+        const wings = L.item.querySelector('.wings');
+        L.item.style.top = '0px';
+        L.item.style.transform = '';
+        if (wings) wings.setAttribute('transform', '');
+        const t0 = performance.now();
+        function frame(now){
+          if (!alive) return;
+          const el = Math.max(0, (now - t0) / 1000);
+          const p = Math.min(el / T, 1);
+          L.item.style.top = (p * maxTop) + 'px';
+          if (wings){
+            const c = Math.cos(el * 11);
+            wings.setAttribute('transform', 'translate(45 0) scale(' + c.toFixed(3) + ' 1) translate(-45 0)');
+          } else {
+            L.item.style.transform = 'rotate(' + (Math.sin(el * 3) * 7).toFixed(2) + 'deg)';
+          }
+          timer.textContent = '⏱ ' + num1(Math.min(el, T)) + ' ثانیه';
+          if (p < 1) raf = requestAnimationFrame(frame); else end();
+        }
+        function end(){
+          L.item.style.top = maxTop + 'px';
+          L.item.style.transform = '';
+          timer.textContent = '⏱ ' + num1(T) + ' ثانیه';
+          results[key].push(T);
+          const idx = results[key].length - 1;
+          cells[key][idx].textContent = num1(T);
+          L.pips[idx].classList.add('on');
+          busy = false; setBtns();
+          if (!shown && results.A.length >= 3 && results.B.length >= 3){
+            shown = true;
+            const nb = h('button', { type: 'button', class: 'btn', onclick: () => setPhase(4) }, 'نتیجه و نمودار را ببینم');
+            row.append(nb); nb.focus();
+          }
+        }
+        raf = requestAnimationFrame(frame);
+      }
+    }
+    function phaseConclude(){
+      const mA = avg(results.A), mB = avg(results.B);
+      const slower = mA > mB ? 'A' : 'B';
+      const ok = prediction && prediction.k === slower;
+      const mx = Math.max(mA, mB);
+      const bar = (m, col) => h('div', { class: 'b', style: 'height:' + Math.round(m / mx * 165) + 'px;background:' + col }, num1(m));
+      const quizHost = h('div');
+      body.replaceChildren(h('div', { class: 'card' },
+        h('h2', null, '💡 نتیجه‌گیری'),
+        h('p', null, 'نمودار ستونی میانگین سه بار آزمایش:'),
+        h('div', { class: 'axis' }, 'محور عمودی: میانگین زمان فرود (ثانیه)'),
+        h('div', { class: 'chart' }, bar(mA, '#0fb5a6'), bar(mB, '#ff4f87')),
+        h('div', { class: 'caps' }, h('div', null, cfg.A.short), h('div', null, cfg.B.short)),
+        h('div', { class: 'axis' }, 'محور افقی: ' + cfg.axisX),
+        h('div', { class: 'note' }, (ok ? '🎯 پیش‌بینی تو درست بود!' : '🔎 پیش‌بینی تو این بار درست نبود. این هم یک یافته‌ی علمی است؛ دانشمندها از آزمایش یاد می‌گیرند.') +
+          ' پیش‌بینی تو: «' + (prediction ? prediction.t : '') + '»')), quizHost);
+      runQuiz(quizHost, cfg.conclude, w => { if (!alive) return; wrongs += w; ctx.finish(starsFor(wrongs, 2, 5)); }, 'پایان مرحله');
+    }
+    setPhase(0);
+  };
+}
+
+/* ---------- stage 7: final challenge ---------- */
+function stageFinal(host, ctx){
+  const tbl = h('table', { class: 'tbl' },
+    h('thead', null, h('tr', null, h('th', null, 'شماره‌ی لوله'), h('th', null, 'جنس پارچه'), h('th', null, 'دمای آب پس از ۱۰ دقیقه'))),
+    h('tbody', null,
+      [['۱', 'پنبه', '۴۲'], ['۲', 'پشم', '۴۷'], ['۳', 'نایلون', '۳۵'], ['۴', 'پلی‌استر', '۳۸']].map(r => h('tr', null, r.map(c => h('td', null, c))))));
+  const extra = h('div', null,
+    h('p', { class: 'muted' }, 'ریحانه و درسا ۴ لوله‌ی آزمایش را با آب ۵۰ درجه‌ی سانتی‌گراد پر کردند و دور هر لوله را با یک جنس پارچه پوشاندند. بعد از ۱۰ دقیقه دمای آب هر لوله را اندازه گرفتند.'), tbl);
+  const quizHost = h('div');
+  host.append(h('div', { class: 'card' }, h('h2', null, 'مرحله‌ی ۷: چالش نهایی'),
+    h('p', null, 'همه‌ی چیزهایی را که یاد گرفتی کنار هم بگذار. با این هفت پرسش مدال دانشمند کوچک را می‌گیری.'),
+    h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn', onclick: () => {
+      host.replaceChildren(quizHost);
+      runQuiz(quizHost, [
+        { tag: 'پارچه', extra, q: 'ریحانه و درسا می‌خواهند بدانند کدام پارچه پالتوی زمستانی را گرم‌تر نگه می‌دارد. چه چیزی را تغییر داده‌اند (متغیر مستقل)؟',
+          o: [['جنس پارچه', 1], ['دمای آب پس از ۱۰ دقیقه', 0], ['دمای اولیه‌ی آب', 0], ['تعداد لوله‌ها', 0]], why: 'جنس پارچه تغییر می‌کند.' },
+        { tag: 'پارچه', q: 'چه چیزی را اندازه گرفته‌اند (متغیر وابسته)؟',
+          o: [['دمای آب پس از ۱۰ دقیقه', 1], ['جنس پارچه', 0], ['دمای اولیه‌ی آب', 0], ['مقدار آب هر لوله', 0]], why: 'دمای آب هر لوله اندازه‌گیری می‌شود.' },
+        { tag: 'پارچه', q: 'کدام پارچه برای دوخت پالتو مناسب‌تر است؟',
+          o: [['پشم، چون آب لوله‌اش بیشتر گرم مانده (۴۷ درجه)', 1], ['نایلون، چون دمای آبش از همه کمتر است (۳۵ درجه)', 0], ['پنبه، چون ۴۲ از همه بیشتر است', 0], ['پلی‌استر، چون عدد ۳۸ دارد', 0]],
+          why: 'پارچه‌ای که دمای آب را بیشتر حفظ کند، گرم‌تر نگه می‌دارد.' },
+        { tag: 'متغیر وابسته', q: 'در عبارت «با افزایش دمای کره‌ی زمین، یخ‌های بیشتری در قطب شمال آب می‌شوند» متغیر وابسته کدام است؟',
+          o: [['آب شدن یخ‌های قطب', 1], ['افزایش دما', 0], ['دمای قطب شمال', 0], ['ضخامت لایه‌ی ازن', 0]], why: 'چیزی که نتیجه‌ی تغییر دماست، متغیر وابسته است.' },
+        { tag: 'متغیر مستقل', q: 'مهدی می‌خواهد بفهمد کدام ماده آب بیشتری جذب می‌کند. او باید چه چیزی را تغییر دهد؟',
+          o: [['جنس ماده‌ای که آب روی آن ریخته می‌شود', 1], ['مقدار آبی که روی ماده می‌ریزد', 0], ['سرعت ریختن آب', 0], ['شکل ظرف آب', 0]], why: 'مواد مختلف را مقایسه می‌کنیم؛ بقیه‌ی چیزها ثابت می‌مانند.' },
+        { tag: 'چترباز', q: 'چترباز اول ۵۵ کیلوگرم با چتر بسیار بزرگ و چترباز سوم ۵۵ کیلوگرم با چتر متوسط است. کدام دیرتر به زمین می‌رسد؟',
+          o: [['اولی، چون سطح چترش بزرگ‌تر است (جرم‌ها برابرند)', 1], ['سومی، چون چترش کوچک‌تر است', 0], ['هر دو هم‌زمان می‌رسند', 0]], why: 'جرم برابر است، پس سطح چتر تعیین می‌کند.' },
+        { tag: 'چترباز', q: 'چترباز دوم ۶۵ کیلوگرم با چتر متوسط و چترباز سوم ۵۵ کیلوگرم با چتر متوسط است. کدام زودتر به زمین می‌رسد؟',
+          o: [['دومی، چون جرمش بیشتر است (اندازه‌ی چترها برابر است)', 1], ['سومی، چون سبک‌تر است', 0], ['هر دو هم‌زمان می‌رسند', 0]], why: 'اندازه‌ی چتر برابر است، پس جرم بیشتر یعنی فرود زودتر.' }
+      ], w => ctx.finish(starsFor(w, 2, 6)), 'دریافت مدال');
+    } }, 'شروع چالش'))));
+}
+
+/* ---------- stage table ---------- */
+const STAGES = [
+  { short: 'مراحل کاوش', render: stageOrder, recap: 'کاوش علمی پنج گام دارد: مشاهده، سؤال، پیش‌بینی، آزمایش و نتیجه‌گیری.' },
+  { short: 'آزمایش مقایسه‌ای', render: stageCompare, recap: 'در آزمایش مقایسه‌ای یک چیز را تغییر می‌دهیم، یک چیز را اندازه می‌گیریم و بقیه را ثابت نگه می‌داریم.' },
+  { short: 'عقاب و کبوتر', render: stageBird, recap: 'پرنده‌ای که بال پهن‌تری دارد با هوای بیشتری برخورد می‌کند و راحت‌تر روی هوا می‌ماند.' },
+  { short: 'پهنای بال', render: simStage(LABS.wing), recap: 'هرچه پهنای بال فرفره بیشتر باشد، دیرتر به زمین می‌رسد.' },
+  { short: 'جرم فرفره', render: simStage(LABS.mass), recap: 'هرچه جرم فرفره بیشتر باشد، زودتر به زمین می‌رسد.' },
+  { short: 'چتر نجات', render: simStage(LABS.para), recap: 'هرچه سطح چتر نجات بزرگ‌تر باشد، دیرتر فرود می‌آید.' },
+  { short: 'چالش نهایی', render: stageFinal, recap: '' }
+];
+
+/* ---------- navigation ---------- */
+function renderPath(){
+  const nav = $('#path');
+  nav.replaceChildren();
+  STAGES.forEach((st, i) => {
+    const n = i + 1, locked = n > S.unlocked, done = !!S.done[n];
+    const b = h('button', {
+      type: 'button',
+      class: 'node' + (done ? ' done' : '') + (locked ? ' locked' : '') + (S.cur === n ? ' cur' : '') + (S.fresh === n ? ' fresh' : ''),
+      disabled: locked,
+      'aria-label': 'مرحله‌ی ' + fa(n) + ': ' + st.short + (locked ? ' (قفل)' : (done ? ' (انجام شد)' : '')),
+      'aria-current': S.cur === n ? 'step' : null
+    }, h('span', { class: 'dot' }, locked ? '🔒' : (done ? '✓' : fa(n))), h('span', { class: 'lbl' }, st.short));
+    b.addEventListener('click', () => show(n));
+    nav.append(b);
+  });
+  $('#score').textContent = '⭐ ' + fa(totalStars());
+  const cur = nav.querySelector('.cur');
+  if (cur && cur.scrollIntoView){ try { cur.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) {} }
+}
+
+function show(n){
+  if (n < 0 || n > STAGES.length || n > S.unlocked) return;
+  if (S.cleanup){ S.cleanup(); S.cleanup = null; }
+  S.cur = n;
+  const token = ++S.token;
+  let finished = false;
+  const host = $('#stage');
+  host.replaceChildren();
+  renderPath();
+  window.scrollTo(0, 0);
+  if (n === 0){ intro(host); return; }
+  const ctx = {
+    setCleanup: f => { S.cleanup = f; },
+    finish: stars => {
+      if (finished || token !== S.token) return;
+      finished = true;
+      S.done[n] = true;
+      S.stars[n] = Math.max(S.stars[n] || 0, stars);
+      if (n < STAGES.length){ S.unlocked = Math.max(S.unlocked, n + 1); S.fresh = n + 1; }
+      if (S.cleanup){ S.cleanup(); S.cleanup = null; }
+      renderPath();
+      window.scrollTo(0, 0);
+      if (n === STAGES.length) certificate(host); else resultCard(host, n, stars);
+    }
+  };
+  STAGES[n - 1].render(host, ctx);
+}
+
+function resultCard(host, n, stars){
+  host.replaceChildren(h('div', { class: 'card center' },
+    h('h2', null, '🎉 مرحله‌ی ' + fa(n) + ' تمام شد!'),
+    h('div', { class: 'stars', 'aria-label': fa(stars) + ' ستاره از ۳' }, starsText(stars)),
+    h('p', null, STAGES[n - 1].recap),
+    h('p', { class: 'muted' }, 'مرحله‌ی ' + fa(n + 1) + ': «' + STAGES[n].short + '» باز شد.'),
+    h('div', { class: 'row', style: 'justify-content:center' },
+      h('button', { type: 'button', class: 'btn big', onclick: () => show(n + 1) }, 'مرحله‌ی بعد'),
+      h('button', { type: 'button', class: 'btn alt', onclick: () => show(n) }, 'تکرار این مرحله'))));
+}
+
+function certificate(host){
+  const who = h('div', { class: 'who' });
+  const upd = () => { who.textContent = S.name ? S.name : ''; };
+  const input = h('input', { type: 'text', maxlength: '30', placeholder: 'اسم خودت را بنویس', 'aria-label': 'اسم دانشمند', value: S.name });
+  input.addEventListener('input', () => { S.name = input.value; upd(); });
+  upd();
+  host.replaceChildren(h('div', { class: 'card cert' },
+    h('div', { class: 'medal', 'aria-hidden': 'true' }, '🏅'),
+    h('h2', null, 'مدال دانشمند کوچک'),
+    h('p', null, 'تو همه‌ی مرحله‌های کاوش علمی را تمام کردی!'),
+    h('div', null, input), who,
+    h('p', null, 'مجموع ستاره‌ها: ' + fa(totalStars()) + ' از ' + fa(STAGES.length * 3)),
+    h('p', { class: 'muted' }, 'هر چیزی را که بخواهی بسنجی، فقط یک چیز را تغییر بده، یک چیز را اندازه بگیر و بقیه را ثابت نگه دار.'),
+    h('div', { class: 'row', style: 'justify-content:center' },
+      h('button', { type: 'button', class: 'btn', onclick: () => show(1) }, 'مرور مرحله‌ها'),
+      h('button', { type: 'button', class: 'btn alt', onclick: () => {
+        S.unlocked = 1; S.stars = {}; S.done = {}; S.fresh = 0; show(0);
+      } }, 'شروع دوباره'))));
+}
+
+show(0);
+})();
+</script>
+</body>
+</html>
